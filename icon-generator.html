@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>네잎클로버 아이콘 생성기</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .canvas-group {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .canvas-wrapper {
+            text-align: center;
+        }
+
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            background-color: #fff;
+            display: block;
+            margin: 10px auto;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            transition: transform 0.2s;
+            margin: 5px;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🍀 네잎클로버 아이콘 생성기</h1>
+
+        <div class="canvas-group">
+            <div class="canvas-wrapper">
+                <p>16x16</p>
+                <canvas id="canvas16" width="16" height="16"></canvas>
+            </div>
+            <div class="canvas-wrapper">
+                <p>48x48</p>
+                <canvas id="canvas48" width="48" height="48"></canvas>
+            </div>
+            <div class="canvas-wrapper">
+                <p>128x128</p>
+                <canvas id="canvas128" width="128" height="128"></canvas>
+            </div>
+        </div>
+
+        <button id="downloadAll">모든 아이콘 다운로드</button>
+
+        <div class="info">
+            <p><strong>사용 방법:</strong></p>
+            <p>1. "모든 아이콘 다운로드" 버튼 클릭</p>
+            <p>2. 다운로드된 3개 파일을 <code>D:\Antigravity-workspace\ooxml-viewer\public\</code> 폴더에 복사</p>
+            <p>3. 터미널에서 <code>npm run build</code> 실행</p>
+            <p>4. Chrome 확장 프로그램 다시 로드</p>
+        </div>
+    </div>
+
+    <script>
+        function drawClover(ctx, size) {
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const leafRadius = size * 0.25; // Increased from 0.15 to 0.25
+
+            // Clear canvas with transparent background
+            ctx.clearRect(0, 0, size, size);
+
+            // Draw four leaves (heart-shaped)
+            const positions = [
+                { x: centerX, y: centerY - leafRadius * 0.8 },        // Top
+                { x: centerX + leafRadius * 0.8, y: centerY },        // Right
+                { x: centerX, y: centerY + leafRadius * 0.8 },        // Bottom
+                { x: centerX - leafRadius * 0.8, y: centerY }         // Left
+            ];
+
+            // Draw leaves with gradient
+            positions.forEach(pos => {
+                const gradient = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, leafRadius);
+                gradient.addColorStop(0, '#66BB6A'); // Light green
+                gradient.addColorStop(1, '#2E7D32'); // Dark green
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, leafRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Add outline for better visibility
+                ctx.strokeStyle = '#1B5E20';
+                ctx.lineWidth = size * 0.02;
+                ctx.stroke();
+            });
+
+            // Draw stem (thicker and more visible)
+            const stemWidth = size * 0.08;
+            const stemHeight = size * 0.35;
+            ctx.fillStyle = '#2E7D32';
+            ctx.fillRect(centerX - stemWidth / 2, centerY + leafRadius * 0.3, stemWidth, stemHeight);
+
+            // Add center circle (larger)
+            const centerRadius = leafRadius * 0.6;
+            const centerGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, centerRadius);
+            centerGradient.addColorStop(0, '#81C784');
+            centerGradient.addColorStop(1, '#4CAF50');
+
+            ctx.fillStyle = centerGradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, centerRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Add highlight to center
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.beginPath();
+            ctx.arc(centerX - centerRadius * 0.3, centerY - centerRadius * 0.3, centerRadius * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Draw on all canvases
+        const canvas16 = document.getElementById('canvas16');
+        const canvas48 = document.getElementById('canvas48');
+        const canvas128 = document.getElementById('canvas128');
+
+        drawClover(canvas16.getContext('2d'), 16);
+        drawClover(canvas48.getContext('2d'), 48);
+        drawClover(canvas128.getContext('2d'), 128);
+
+        // Download function
+        function downloadCanvas(canvas, filename) {
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        document.getElementById('downloadAll').addEventListener('click', function () {
+            setTimeout(() => downloadCanvas(canvas16, 'icon16.png'), 100);
+            setTimeout(() => downloadCanvas(canvas48, 'icon48.png'), 300);
+            setTimeout(() => downloadCanvas(canvas128, 'icon128.png'), 500);
+
+            alert('3개의 아이콘 파일이 다운로드됩니다!\n\n다운로드 폴더에서 파일을 찾아\nD:\\Antigravity-workspace\\ooxml-viewer\\public\\ 폴더로 복사하세요.');
+        });
+    </script>
+</body>
+
+</html>

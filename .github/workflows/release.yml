@@ -1,0 +1,58 @@
+name: Release Chrome Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Chrome Extension
+        run: npm run build:extension
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create ZIP file
+        run: |
+          cd dist
+          zip -r ../ooxml-odf-viewer-${{ steps.get_version.outputs.VERSION }}.zip .
+          cd ..
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ooxml-odf-viewer-${{ steps.get_version.outputs.VERSION }}.zip
+          body: |
+            # OOXML/ODF Viewer & Editor ${{ steps.get_version.outputs.VERSION }}
+            
+            Chrome Extension 다운로드 및 설치 방법:
+            
+            1. 아래 ZIP 파일 다운로드
+            2. ZIP 파일 압축 해제
+            3. Chrome에서 `chrome://extensions/` 접속
+            4. "개발자 모드" 활성화
+            5. "압축해제된 확장 프로그램을 로드합니다" 클릭
+            6. 압축 해제한 폴더 선택
+            
+            **웹사이트 버전**: https://leesk1283-github.github.io/ooxml-odf-viewer/
+          draft: false
+          prerelease: false
