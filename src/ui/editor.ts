@@ -350,8 +350,11 @@ export class Editor {
                     parent: this.contentArea
                 });
 
-                // 검색 패널을 항상 표시
-                openSearchPanel(this.editorView);
+                // 검색 패널을 항상 표시 (모바일 제외)
+                // 768px 이상일 때만 자동으로 검색 패널 열기
+                if (window.innerWidth > 768) {
+                    openSearchPanel(this.editorView);
+                }
 
             } else {
                 const url = URL.createObjectURL(data);

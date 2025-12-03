@@ -110,3 +110,32 @@ document.addEventListener('mouseup', () => {
         document.body.style.userSelect = '';
     }
 });
+
+// Touch Events for Mobile Resizing
+resizer.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // Prevent scrolling while resizing
+    isResizing = true;
+    resizer.classList.add('resizing');
+    document.body.style.userSelect = 'none';
+});
+
+document.addEventListener('touchmove', (e) => {
+    if (!isResizing) return;
+
+    // Get touch position
+    const touch = e.touches[0];
+    const newWidth = touch.clientX;
+
+    // Min/Max constraints
+    if (newWidth > 150 && newWidth < 600) {
+        sidebar.style.width = `${newWidth}px`;
+    }
+});
+
+document.addEventListener('touchend', () => {
+    if (isResizing) {
+        isResizing = false;
+        resizer.classList.remove('resizing');
+        document.body.style.userSelect = '';
+    }
+});
