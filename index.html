@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/ooxml-odf-viewer/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OOXML/ODF Viewer</title>
+  <script type="module" crossorigin src="/ooxml-odf-viewer/assets/index-4VCUVwJk.js"></script>
+  <link rel="stylesheet" crossorigin href="/ooxml-odf-viewer/assets/index-l-Bpc-js.css">
+</head>
+
+<body>
+  <div id="app">
+    <header>
+      <div class="logo">
+        <span class="icon">📄</span>
+        <h1>OOXML/ODF Viewer</h1>
+        <span id="file-name"></span>
+      </div>
+      <div class="actions">
+        <button id="btn-download" disabled>Download</button>
+        <label for="file-upload" class="btn-primary">Open File</label>
+        <input type="file" id="file-upload" accept=".docx,.xlsx,.pptx,.odt,.ods,.odp,.show" hidden />
+      </div>
+    </header>
+    <main>
+      <div id="sidebar">
+        <div class="sidebar-header">Explorer</div>
+        <div id="file-tree"></div>
+      </div>
+      <div id="resizer"></div>
+      <div id="editor-area">
+        <div id="editor-container" class="hidden">
+          <div class="editor-toolbar">
+            <span id="current-path"></span>
+            <button id="btn-save" disabled>Save</button>
+          </div>
+          <div id="editor-content"></div>
+        </div>
+        <div id="empty-state">
+          <p>Select a file to view or edit</p>
+        </div>
+      </div>
+
+      <div id="drop-zone" class="hidden">
+        <div class="drop-message">Drop file to open</div>
+      </div>
+    </main>
+  </div>
+</body>
+
+</html>
