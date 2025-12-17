@@ -451,4 +451,8 @@ export class Editor {
         this.emptyState.classList.remove('hidden');
         this.editorContainer.classList.add('hidden');
     }
+
+    getCurrentFilePath(): string | null {
+        return this.currentNode ? this.currentNode.path : null;
+    }
 }

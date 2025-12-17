@@ -82,4 +82,38 @@ export class ZipHandler {
     async generateZip(type: 'blob' = 'blob'): Promise<Blob> {
         return await this.zip.generateAsync({ type });
     }
+
+    deleteFile(path: string): void {
+        this.zip.remove(path);
+    }
+
+    deleteFolder(path: string): void {
+        // Remove folder and all its contents
+        const normalizedPath = path.endsWith('/') ? path : path + '/';
+
+        // Collect all files to delete
+        const filesToDelete: string[] = [];
+        this.zip.forEach((relativePath) => {
+            if (relativePath.startsWith(normalizedPath) || relativePath === path) {
+                filesToDelete.push(relativePath);
+            }
+        });
+
+        // Delete all collected files
+        filesToDelete.forEach(file => this.zip.remove(file));
+    }
+
+    countFilesInFolder(path: string): number {
+        const normalizedPath = path.endsWith('/') ? path : path + '/';
+        let count = 0;
+
+        this.zip.forEach((relativePath, zipEntry) => {
+            // Only count files (not directories) within this folder
+            if (relativePath.startsWith(normalizedPath) && !zipEntry.dir) {
+                count++;
+            }
+        });
+
+        return count;
+    }
 }
