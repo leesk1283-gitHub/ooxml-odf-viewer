@@ -1,4 +1,4 @@
-import { ZipHandler } from './utils/zipHandler';
+import { ZipHandler, type ZipNode } from './utils/zipHandler';
 import { renderFileTree, highlightTreeNode } from './ui/treeView';
 import { Editor } from './ui/editor';
 import { saveAs } from 'file-saver';
@@ -19,25 +19,136 @@ const downloadBtn = document.getElementById('btn-download') as HTMLButtonElement
 
 let currentFileName = '';
 
+const criticalFiles = [
+    '[Content_Types].xml',
+    'document.xml',
+    'workbook.xml',
+    'presentation.xml',
+    'content.xml',
+    'styles.xml',
+    'settings.xml',
+    'app.xml',
+    'core.xml'
+];
+
 // File Handling
 async function handleFile(file: File) {
     try {
         await zipHandler.loadAsync(file);
-        const tree = zipHandler.getFileTree();
-
         currentFileName = file.name;
         fileNameDisplay.textContent = `(${file.name})`;
         downloadBtn.disabled = false;
 
-        renderFileTree(sidebarTree, tree, (node) => {
-            editor.loadFile(node);
-        });
-
+        refreshFileTree();
         editor.reset();
         dropZone.classList.add('hidden');
     } catch (error) {
         console.error(error);
         alert('Failed to load file');
+    }
+}
+
+function refreshFileTree() {
+    // Save currently open folders
+    const openFolders = new Set<string>();
+    sidebarTree.querySelectorAll('.tree-children.open').forEach(ul => {
+        const li = ul.parentElement;
+        if (li) {
+            const content = li.querySelector('.tree-content');
+            if (content) {
+                const path = content.getAttribute('data-path');
+                if (path) openFolders.add(path);
+            }
+        }
+    });
+
+    const tree = zipHandler.getFileTree();
+    renderFileTree(
+        sidebarTree,
+        tree,
+        async (node) => {
+            await editor.loadFile(node);
+        },
+        (node) => {
+            handleDelete(node);
+        }
+    );
+
+    // Restore open folders
+    openFolders.forEach(path => {
+        const safePath = path.replace(/"/g, '\\"');
+        const content = sidebarTree.querySelector(`.tree-content[data-path="${safePath}"]`);
+        if (content) {
+            const li = content.parentElement;
+            if (li) {
+                const childrenContainer = li.querySelector('.tree-children');
+                const toggle = content.querySelector('.tree-toggle') as HTMLElement;
+                const icon = content.querySelector('.tree-icon') as HTMLElement;
+
+                if (childrenContainer) {
+                    childrenContainer.classList.add('open');
+                    if (toggle) toggle.style.transform = 'rotate(90deg)';
+                    if (icon) icon.textContent = '📂';
+                }
+            }
+        }
+    });
+}
+
+function handleDelete(node: ZipNode) {
+    const itemType = node.isDir ? '폴더' : '파일';
+    let message = `"${node.name}" ${itemType}을(를) 삭제하시겠습니까?`;
+
+    // Add file count for folders
+    if (node.isDir) {
+        const fileCount = zipHandler.countFilesInFolder(node.path);
+        message = `"${node.name}" 폴더를 삭제하시겠습니까?\n(${fileCount}개 파일 포함)`;
+    }
+
+    // Check if it's a critical file
+    const isCritical = criticalFiles.some(critical =>
+        node.path.endsWith(critical) || node.name === critical
+    );
+
+    if (isCritical) {
+        message += '\n\n⚠️ 경고: 이 파일은 문서의 핵심 파일입니다.\n삭제하면 문서가 손상될 수 있습니다.';
+    }
+
+    if (confirm(message)) {
+        // Find and animate the tree node before deletion
+        const safePath = node.path.replace(/"/g, '\\"');
+        const treeContent = sidebarTree.querySelector(`.tree-content[data-path="${safePath}"]`);
+
+        if (treeContent) {
+            const treeNode = treeContent.parentElement; // li element
+            treeContent.classList.add('deleting');
+
+            // If it's a folder with children, animate children too
+            if (treeNode) {
+                const childrenContainer = treeNode.querySelector('.tree-children');
+                if (childrenContainer) {
+                    childrenContainer.classList.add('deleting');
+                }
+            }
+        }
+
+        // Wait for animation to complete, then delete
+        setTimeout(() => {
+            if (node.isDir) {
+                zipHandler.deleteFolder(node.path);
+            } else {
+                zipHandler.deleteFile(node.path);
+            }
+
+            // Check if currently open file is deleted
+            const currentPath = editor.getCurrentFilePath();
+            if (currentPath && (currentPath === node.path || currentPath.startsWith(node.path + '/'))) {
+                editor.reset();
+            }
+
+            // Refresh tree
+            refreshFileTree();
+        }, 300); // Match CSS transition duration
     }
 }
 

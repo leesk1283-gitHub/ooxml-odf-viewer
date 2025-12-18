@@ -166,6 +166,22 @@ main {
     border: 1px solid var(--accent-color);
 }
 
+.tree-content.deleting {
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.tree-node.deleting > .tree-content {
+    opacity: 0;
+    transform: translateX(-10px);
+}
+
+.tree-children.deleting {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
 .tree-icon {
     margin-right: 6px;
     width: 16px;

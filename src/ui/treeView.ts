@@ -1,9 +1,38 @@
 import type { ZipNode } from '../utils/zipHandler';
 
+function createDeleteButton(node: ZipNode, onDelete: (node: ZipNode) => void): HTMLButtonElement {
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'tree-delete-btn';
+    deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`;
+    deleteBtn.style.padding = '2px 4px';
+    deleteBtn.style.marginLeft = '8px';
+    deleteBtn.style.background = 'transparent';
+    deleteBtn.style.border = 'none';
+    deleteBtn.style.cursor = 'pointer';
+    deleteBtn.style.color = '#9ca3af';
+    deleteBtn.style.display = 'none';
+    deleteBtn.style.flexShrink = '0';
+    deleteBtn.title = 'Delete';
+
+    deleteBtn.addEventListener('mouseenter', () => {
+        deleteBtn.style.color = '#ef4444';
+    });
+    deleteBtn.addEventListener('mouseleave', () => {
+        deleteBtn.style.color = '#9ca3af';
+    });
+    deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        onDelete(node);
+    });
+
+    return deleteBtn;
+}
+
 export function renderFileTree(
     container: HTMLElement,
     nodes: ZipNode[],
     onSelect: (node: ZipNode) => void,
+    onDelete: (node: ZipNode) => void,
     selectedPath?: string
 ) {
     container.innerHTML = '';
@@ -11,7 +40,7 @@ export function renderFileTree(
     ul.style.paddingLeft = '0';
 
     nodes.forEach(node => {
-        ul.appendChild(createTreeNode(node, onSelect, selectedPath, 0));
+        ul.appendChild(createTreeNode(node, onSelect, onDelete, selectedPath, 0));
     });
 
     container.appendChild(ul);
@@ -65,6 +94,7 @@ export function highlightTreeNode(container: HTMLElement, path: string | null) {
 function createTreeNode(
     node: ZipNode,
     onSelect: (node: ZipNode) => void,
+    onDelete: (node: ZipNode) => void,
     selectedPath: string | undefined,
     level: number
 ): HTMLElement {
@@ -75,10 +105,19 @@ function createTreeNode(
     content.className = 'tree-content';
     content.setAttribute('data-path', node.path);
     content.style.paddingLeft = `${level * 12 + 8}px`;
+    content.style.display = 'flex';
+    content.style.alignItems = 'center';
 
     if (selectedPath === node.path) {
         content.classList.add('selected');
     }
+
+    // Left side container (toggle + icon + label)
+    const leftContainer = document.createElement('div');
+    leftContainer.style.display = 'flex';
+    leftContainer.style.alignItems = 'center';
+    leftContainer.style.flex = '1';
+    leftContainer.style.minWidth = '0';
 
     // Toggle Icon (Triangle)
     const toggle = document.createElement('span');
@@ -96,7 +135,7 @@ function createTreeNode(
     } else {
         toggle.innerHTML = '&nbsp;';
     }
-    content.appendChild(toggle);
+    leftContainer.appendChild(toggle);
 
     // File/Folder Icon
     const icon = document.createElement('span');
@@ -107,13 +146,32 @@ function createTreeNode(
     } else {
         icon.textContent = iconData.content;
     }
-    content.appendChild(icon);
+    leftContainer.appendChild(icon);
 
     // Label
     const label = document.createElement('span');
     label.className = 'tree-label';
     label.textContent = node.name;
-    content.appendChild(label);
+    label.style.flex = '1';
+    label.style.minWidth = '0';
+    label.style.overflow = 'hidden';
+    label.style.textOverflow = 'ellipsis';
+    label.style.whiteSpace = 'nowrap';
+    leftContainer.appendChild(label);
+
+    content.appendChild(leftContainer);
+
+    // Delete Button
+    const deleteBtn = createDeleteButton(node, onDelete);
+    content.appendChild(deleteBtn);
+
+    // Show delete button on hover
+    content.addEventListener('mouseenter', () => {
+        deleteBtn.style.display = 'inline-block';
+    });
+    content.addEventListener('mouseleave', () => {
+        deleteBtn.style.display = 'none';
+    });
 
     li.appendChild(content);
 
@@ -123,7 +181,7 @@ function createTreeNode(
         childrenContainer = document.createElement('ul');
         childrenContainer.className = 'tree-children';
         node.children.forEach(child => {
-            childrenContainer!.appendChild(createTreeNode(child, onSelect, selectedPath, level + 1));
+            childrenContainer!.appendChild(createTreeNode(child, onSelect, onDelete, selectedPath, level + 1));
         });
         li.appendChild(childrenContainer);
     }
