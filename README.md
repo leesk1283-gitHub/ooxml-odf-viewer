@@ -29,29 +29,11 @@ Chrome Extension으로도 사용할 수 있습니다.
 - 🎨 다크 모드 UI
 - 💾 실시간 저장 및 다운로드
 
-## 🛠 개발자용
-
-### 설치
-```bash
-npm install
-```
-
-### 개발 서버
-```bash
-npm run dev
-```
-
-### 빌드
-```bash
-npm run build
-```
-
-빌드 결과물은 `dist` 폴더에 생성됩니다.
-
 ## 📄 지원 파일 형식
 
 - `.docx`, `.xlsx`, `.pptx` (Microsoft Office)
 - `.odt`, `.ods`, `.odp` (LibreOffice/OpenOffice)
+- 기타 xml 형식의 파일들 (hwpx 등)
 
 ## 📝 License
 
