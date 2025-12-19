@@ -38,3 +38,6 @@ Chrome Extension으로도 사용할 수 있습니다.
 ## 📝 License
 
 MIT
+
+---
+Created by <a href="https://github.com/leesk1283-github" target="_blank" rel="noopener noreferrer">leesk1283-github</a>
