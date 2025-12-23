@@ -1,15 +1,17 @@
 name: Release Chrome Extension
 
 on:
-  push:
-    tags:
-      - 'v*'
+  pull_request:
+    branches:
+      - main
+    types: [closed]
 
 permissions:
   contents: write
 
 jobs:
   release:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -27,9 +29,11 @@ jobs:
       - name: Build Chrome Extension
         run: npm run build:extension
 
-      - name: Get version from tag
+      - name: Get version from package.json
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=v$VERSION" >> $GITHUB_OUTPUT
 
       - name: Create ZIP file
         run: |
@@ -38,8 +42,10 @@ jobs:
           cd ..
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
+          tag_name: latest
+          name: Latest Release (${{ steps.get_version.outputs.VERSION }})
           files: ooxml-odf-viewer-${{ steps.get_version.outputs.VERSION }}.zip
           body: |
             # OOXML/ODF Viewer & Editor ${{ steps.get_version.outputs.VERSION }}
@@ -56,3 +62,5 @@ jobs:
             **웹사이트 버전**: https://leesk1283-github.github.io/ooxml-odf-viewer/
           draft: false
           prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
