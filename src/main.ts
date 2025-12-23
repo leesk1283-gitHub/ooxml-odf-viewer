@@ -1,174 +1,83 @@
-import { ZipHandler, type ZipNode } from './utils/zipHandler';
-import { renderFileTree, highlightTreeNode } from './ui/treeView';
-import { Editor } from './ui/editor';
-import { saveAs } from 'file-saver';
+import { Mode } from './modes/mode';
+import { DiffMode } from './modes/diffMode';
 
-const zipHandler = new ZipHandler();
-const editor = new Editor(zipHandler, (path) => {
-    highlightTreeNode(sidebarTree, path);
-});
+// Mode State
+let mode: Mode | null = null;
+let diffMode: DiffMode | null = null;
 
 // Elements
 const fileInput = document.getElementById('file-upload') as HTMLInputElement;
 const dropZone = document.getElementById('drop-zone')!;
-const sidebarTree = document.getElementById('file-tree')!;
 const sidebar = document.getElementById('sidebar')!;
 const resizer = document.getElementById('resizer')!;
-const fileNameDisplay = document.getElementById('file-name')!;
-const downloadBtn = document.getElementById('btn-download') as HTMLButtonElement;
-
-let currentFileName = '';
-
-const criticalFiles = [
-    '[Content_Types].xml',
-    'document.xml',
-    'workbook.xml',
-    'presentation.xml',
-    'content.xml',
-    'styles.xml',
-    'settings.xml',
-    'app.xml',
-    'core.xml'
-];
 
 // File Handling
-async function handleFile(file: File) {
-    try {
-        await zipHandler.loadAsync(file);
-        currentFileName = file.name;
-        fileNameDisplay.textContent = `(${file.name})`;
-        downloadBtn.disabled = false;
+async function enterSingleMode(file: File) {
+    cleanupCurrentMode();
+    showSingleModeUI();
+    mode = new Mode();
+    await mode.handleFile(file);
+    dropZone.classList.add('hidden');
+}
 
-        refreshFileTree();
-        editor.reset();
-        dropZone.classList.add('hidden');
-    } catch (error) {
-        console.error(error);
-        alert('Failed to load file');
+async function enterDiffMode(leftFile: File, rightFile: File) {
+    cleanupCurrentMode();
+    showDiffModeUI();
+    diffMode = new DiffMode();
+    await diffMode.initialize(leftFile, rightFile);
+    dropZone.classList.add('hidden');
+}
+
+function cleanupCurrentMode() {
+    if (mode) {
+        mode.cleanup();
+        mode = null;
+    }
+    if (diffMode) {
+        diffMode.cleanup();
+        diffMode = null;
     }
 }
 
-function refreshFileTree() {
-    // Save currently open folders
-    const openFolders = new Set<string>();
-    sidebarTree.querySelectorAll('.tree-children.open').forEach(ul => {
-        const li = ul.parentElement;
-        if (li) {
-            const content = li.querySelector('.tree-content');
-            if (content) {
-                const path = content.getAttribute('data-path');
-                if (path) openFolders.add(path);
-            }
-        }
-    });
+function showSingleModeUI() {
+    // Show single mode elements
+    document.getElementById('file-name')?.classList.remove('hidden');
+    document.getElementById('btn-download')?.classList.remove('hidden');
+    document.getElementById('editor-container')?.classList.remove('hidden');
 
-    const tree = zipHandler.getFileTree();
-    renderFileTree(
-        sidebarTree,
-        tree,
-        async (node) => {
-            await editor.loadFile(node);
-        },
-        (node) => {
-            handleDelete(node);
-        }
-    );
-
-    // Restore open folders
-    openFolders.forEach(path => {
-        const safePath = path.replace(/"/g, '\\"');
-        const content = sidebarTree.querySelector(`.tree-content[data-path="${safePath}"]`);
-        if (content) {
-            const li = content.parentElement;
-            if (li) {
-                const childrenContainer = li.querySelector('.tree-children');
-                const toggle = content.querySelector('.tree-toggle') as HTMLElement;
-                const icon = content.querySelector('.tree-icon') as HTMLElement;
-
-                if (childrenContainer) {
-                    childrenContainer.classList.add('open');
-                    if (toggle) toggle.style.transform = 'rotate(90deg)';
-                    if (icon) icon.textContent = '📂';
-                }
-            }
-        }
-    });
+    // Hide diff mode elements
+    document.getElementById('diff-file-names')?.classList.add('hidden');
+    document.getElementById('diff-download-btns')?.classList.add('hidden');
+    document.getElementById('diff-editor-container')?.classList.add('hidden');
 }
 
-function handleDelete(node: ZipNode) {
-    const itemType = node.isDir ? '폴더' : '파일';
-    let message = `"${node.name}" ${itemType}을(를) 삭제하시겠습니까?`;
+function showDiffModeUI() {
+    // Hide single mode elements
+    document.getElementById('file-name')?.classList.add('hidden');
+    document.getElementById('btn-download')?.classList.add('hidden');
+    document.getElementById('editor-container')?.classList.add('hidden');
 
-    // Add file count for folders
-    if (node.isDir) {
-        const fileCount = zipHandler.countFilesInFolder(node.path);
-        message = `"${node.name}" 폴더를 삭제하시겠습니까?\n(${fileCount}개 파일 포함)`;
-    }
-
-    // Check if it's a critical file
-    const isCritical = criticalFiles.some(critical =>
-        node.path.endsWith(critical) || node.name === critical
-    );
-
-    if (isCritical) {
-        message += '\n\n⚠️ 경고: 이 파일은 문서의 핵심 파일입니다.\n삭제하면 문서가 손상될 수 있습니다.';
-    }
-
-    if (confirm(message)) {
-        // Find and animate the tree node before deletion
-        const safePath = node.path.replace(/"/g, '\\"');
-        const treeContent = sidebarTree.querySelector(`.tree-content[data-path="${safePath}"]`);
-
-        if (treeContent) {
-            const treeNode = treeContent.parentElement; // li element
-            treeContent.classList.add('deleting');
-
-            // If it's a folder with children, animate children too
-            if (treeNode) {
-                const childrenContainer = treeNode.querySelector('.tree-children');
-                if (childrenContainer) {
-                    childrenContainer.classList.add('deleting');
-                }
-            }
-        }
-
-        // Wait for animation to complete, then delete
-        setTimeout(() => {
-            if (node.isDir) {
-                zipHandler.deleteFolder(node.path);
-            } else {
-                zipHandler.deleteFile(node.path);
-            }
-
-            // Check if currently open file is deleted
-            const currentPath = editor.getCurrentFilePath();
-            if (currentPath && (currentPath === node.path || currentPath.startsWith(node.path + '/'))) {
-                editor.reset();
-            }
-
-            // Refresh tree
-            refreshFileTree();
-        }, 300); // Match CSS transition duration
-    }
+    // Show diff mode elements
+    document.getElementById('diff-file-names')?.classList.remove('hidden');
+    document.getElementById('diff-download-btns')?.classList.remove('hidden');
+    document.getElementById('diff-editor-container')?.classList.remove('hidden');
 }
 
 // Event Listeners
-fileInput.addEventListener('change', (e) => {
+fileInput.addEventListener('change', async (e) => {
     const files = (e.target as HTMLInputElement).files;
-    if (files && files.length > 0) {
-        handleFile(files[0]);
-    }
-});
+    if (!files || files.length === 0) return;
 
-downloadBtn.addEventListener('click', async () => {
-    if (!currentFileName) return;
-    try {
-        const blob = await zipHandler.generateZip('blob');
-        saveAs(blob, currentFileName);
-    } catch (error) {
-        console.error(error);
-        alert('Failed to generate zip');
+    if (files.length === 2) {
+        await enterDiffMode(files[0], files[1]);
+    } else if (files.length === 1) {
+        await enterSingleMode(files[0]);
+    } else {
+        alert('Please select 1 file for single mode or 2 files for diff mode');
     }
+
+    // Reset input
+    fileInput.value = '';
 });
 
 // Drag & Drop
@@ -182,12 +91,19 @@ dropZone.addEventListener('dragleave', (e) => {
     dropZone.classList.add('hidden');
 });
 
-dropZone.addEventListener('drop', (e) => {
+dropZone.addEventListener('drop', async (e) => {
     e.preventDefault();
     dropZone.classList.add('hidden');
 
-    if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
-        handleFile(e.dataTransfer.files[0]);
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+
+    if (files.length === 2) {
+        await enterDiffMode(files[0], files[1]);
+    } else if (files.length === 1) {
+        await enterSingleMode(files[0]);
+    } else {
+        alert('Please drop 1 file for single mode or 2 files for diff mode');
     }
 });
 

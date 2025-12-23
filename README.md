@@ -28,6 +28,40 @@ Chrome Extension으로도 사용할 수 있습니다.
 - 💡 Relationship Tooltip (rId 마우스 오버 시 타겟 파일 표시)
 - 🎨 다크 모드 UI
 - 💾 실시간 저장 및 다운로드
+- 🔄 Diff 모드 (두 파일 비교)
+- 🗑️ 파일/폴더 삭제 기능
+
+## 🏗️ 아키텍처
+
+### 클래스 계층 구조
+
+**Mode 계층:**
+```
+BaseMode (공통 트리 관리 및 애니메이션)
+  ├─ Mode (단일 파일 모드)
+  └─ DiffMode (비교 모드)
+```
+
+**Editor 계층:**
+```
+BaseEditor (공통 관계 처리 및 XML 포매팅)
+  ├─ Editor (단일 편집기)
+  └─ DiffEditor (비교 편집기)
+```
+
+**UI 컴포넌트:**
+- `TreeView`: isDiffMode 플래그로 단일/비교 모드 지원
+- `ZipHandler`: JSZip 래퍼, 파일 CRUD 작업
+
+### 주요 디렉터리
+```
+src/
+  modes/        # 애플리케이션 모드 (Single/Diff)
+  ui/           # UI 컴포넌트 (Editor, TreeView)
+  utils/        # 유틸리티 (ZipHandler, DiffUtils, DomUtils)
+  types/        # TypeScript 타입 정의
+  const/        # 상수 정의
+```
 
 ## 📄 지원 파일 형식
 
