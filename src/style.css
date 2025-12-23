@@ -349,3 +349,183 @@ img.preview-image {
 .hidden {
     display: none !important;
 }
+
+/* ===== Diff Mode Styles ===== */
+
+/* Diff File Names in Header */
+#diff-file-names {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 16px;
+}
+
+.diff-file-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.diff-separator {
+    font-size: 16px;
+    color: var(--text-secondary);
+    font-weight: bold;
+    margin: 0 4px;
+}
+
+/* Diff Download Buttons */
+#diff-download-btns {
+    display: flex;
+    gap: 8px;
+}
+
+#btn-download-left {
+    background-color: #0891b2;
+    color: white;
+}
+
+#btn-download-left:hover:not(:disabled) {
+    background-color: #0e7490;
+}
+
+#btn-download-right {
+    background-color: #ea580c;
+    color: white;
+}
+
+#btn-download-right:hover:not(:disabled) {
+    background-color: #c2410c;
+}
+
+/* Diff Editor Container */
+#diff-editor-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.diff-editor-toolbar {
+    background-color: var(--bg-panel);
+    border-bottom: 1px solid var(--border-color);
+    padding: 8px 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 36px;
+}
+
+.diff-editor-toolbar span {
+    font-family: monospace;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.diff-editor-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    background-color: var(--bg-panel);
+    border-bottom: 1px solid var(--border-color);
+}
+
+#btn-save-left,
+#btn-save-right {
+    background-color: var(--accent-color);
+    color: white;
+    padding: 4px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#btn-save-left:hover:not(:disabled),
+#btn-save-right:hover:not(:disabled) {
+    background-color: var(--accent-hover);
+}
+
+#diff-editor-content {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Diff Tree Status Colors */
+.tree-content[data-status="left-only"] {
+    color: #60a5fa;
+}
+
+.tree-content[data-status="right-only"] {
+    color: #fb923c;
+}
+
+.tree-content[data-status="both-same"] {
+    color: #6b7280;
+}
+
+.tree-content[data-status="both-diff"] {
+    color: var(--text-secondary);
+}
+
+.tree-content[data-status="both-diff"].selected {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.tree-content[data-status="left-only"].selected,
+.tree-content[data-status="right-only"].selected,
+.tree-content[data-status="both-same"].selected {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+/* Status icon in tree */
+.tree-status-icon {
+    margin-right: 4px;
+    font-size: 14px;
+}
+
+/* CodeMirror Merge View Overrides */
+.cm-mergeView {
+    height: 100%;
+    border: none;
+}
+
+.cm-mergeViewEditor {
+    height: 100%;
+}
+
+.cm-merge-revert {
+    display: none;
+}
+
+/* Search Panel in Diff Mode - 2 Line Layout */
+#diff-editor-content .cm-search {
+    flex-wrap: wrap;
+    max-width: 100%;
+}
+
+#diff-editor-content .cm-search > * {
+    flex-shrink: 0;
+}
+
+/* Ensure replace controls go to second line */
+#diff-editor-content .cm-search br {
+    display: block;
+    width: 100%;
+    height: 0;
+}
+
+/* Diff highlights for merge view */
+.cm-deletedLine {
+    background-color: rgba(255, 85, 85, 0.2) !important;
+}
+
+.cm-insertedLine {
+    background-color: rgba(85, 255, 85, 0.2) !important;
+}
+
+.cm-changedLine {
+    background-color: rgba(255, 255, 85, 0.15) !important;
+}
