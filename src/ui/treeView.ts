@@ -28,11 +28,28 @@ export class TreeView {
         const ul = document.createElement('ul');
         ul.style.paddingLeft = '0';
 
-        nodes.forEach(node => {
+        // Sort nodes: folders first, then files, each sorted by name
+        const sortedNodes = this.sortNodes(nodes);
+
+        sortedNodes.forEach(node => {
             ul.appendChild(this.createTreeNode(node, onSelect, onDelete, selectedPath, 0));
         });
 
         this.container.appendChild(ul);
+    }
+
+    /**
+     * Sort nodes: folders first, then files, each alphabetically by name
+     */
+    private sortNodes<T extends ZipNode | MergedZipNode>(nodes: T[]): T[] {
+        return [...nodes].sort((a, b) => {
+            // Folders come first
+            if (a.isDir && !b.isDir) return -1;
+            if (!a.isDir && b.isDir) return 1;
+
+            // Within same type, sort alphabetically (case-insensitive)
+            return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+        });
     }
 
     /**
@@ -172,10 +189,10 @@ export class TreeView {
         content.appendChild(deleteBtn);
 
         content.addEventListener('mouseenter', () => {
-            deleteBtn.style.display = 'inline-block';
+            deleteBtn.style.visibility = 'visible';
         });
         content.addEventListener('mouseleave', () => {
-            deleteBtn.style.display = 'none';
+            deleteBtn.style.visibility = 'hidden';
         });
 
         li.appendChild(content);
@@ -185,7 +202,9 @@ export class TreeView {
         if (node.isDir && node.children) {
             childrenContainer = document.createElement('ul');
             childrenContainer.className = 'tree-children';
-            node.children.forEach(child => {
+            // Sort children as well
+            const sortedChildren = this.sortNodes(node.children as T[]);
+            sortedChildren.forEach(child => {
                 childrenContainer!.appendChild(this.createTreeNode(child as T, onSelect, onDelete, selectedPath, level + 1));
             });
             li.appendChild(childrenContainer);
@@ -226,7 +245,7 @@ export class TreeView {
         deleteBtn.style.border = 'none';
         deleteBtn.style.cursor = 'pointer';
         deleteBtn.style.color = '#9ca3af';
-        deleteBtn.style.display = 'none';
+        deleteBtn.style.visibility = 'hidden';
         deleteBtn.style.flexShrink = '0';
         deleteBtn.title = 'Delete';
 
