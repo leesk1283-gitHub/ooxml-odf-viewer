@@ -34,7 +34,7 @@ export abstract class BaseEditor {
             if (typeof content === 'string') {
                 this.parseRelsContent(content, folder, targetMap);
             }
-        } catch (e) {
+        } catch {
             // .rels file might not exist, which is fine
             console.log(`[Debug] No .rels file found for ${xmlPath}`);
         }
@@ -142,14 +142,41 @@ export abstract class BaseEditor {
      */
     protected formatXml(content: string): string {
         try {
-            return xmlFormatter(content, {
+            // Normalize attributes before formatting to make comparison easier
+            const normalized = this.normalizeXmlAttributes(content);
+            return xmlFormatter(normalized, {
                 indentation: '  ',
                 collapseContent: true,
                 lineSeparator: '\n'
             });
-        } catch (e) {
+        } catch {
             // Return original if formatting fails
             return content;
         }
+    }
+
+    /**
+     * Normalize XML by sorting attributes alphabetically
+     * This helps with comparing files that have the same content but different attribute order
+     */
+    private normalizeXmlAttributes(xml: string): string {
+        // Sort attributes within each tag
+        return xml.replace(/<([a-zA-Z_:][\w:.-]*)\s+([^>]+?)(\/?)\s*>/g, (match, tagName, attrs, selfClose) => {
+            // Extract all attributes: attr="value" or attr='value'
+            const attrMatches = attrs.match(/[\w:.-]+\s*=\s*("[^"]*"|'[^']*')/g);
+
+            if (!attrMatches || attrMatches.length <= 1) {
+                // No attributes or single attribute - return as is
+                return match;
+            }
+
+            // Sort attributes alphabetically (after normalizing whitespace)
+            const sortedAttrs = attrMatches
+                .map((attr: string) => attr.replace(/\s*=\s*/, '='))  // Normalize spaces around =
+                .sort()
+                .join(' ');
+
+            return `<${tagName} ${sortedAttrs}${selfClose}>`;
+        });
     }
 }
