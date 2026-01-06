@@ -42,7 +42,32 @@ jobs:
           zip -r ../ooxml-odf-viewer-${{ steps.get_version.outputs.VERSION }}.zip .
           cd ..
 
-      - name: Create Release
+      - name: Create Version Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          generate_release_notes: true
+          files: ooxml-odf-viewer-${{ steps.get_version.outputs.VERSION }}.zip
+          body: |
+            # OOXML/ODF Viewer & Editor ${{ steps.get_version.outputs.VERSION }}
+
+            Chrome Extension 다운로드 및 설치 방법:
+
+            1. 아래 ZIP 파일 다운로드
+            2. ZIP 파일 압축 해제
+            3. Chrome에서 `chrome://extensions/` 접속
+            4. "개발자 모드" 활성화
+            5. "압축해제된 확장 프로그램을 로드합니다" 클릭
+            6. 압축 해제한 폴더 선택
+
+            **웹사이트 버전**: https://leesk1283-github.github.io/ooxml-odf-viewer/
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Latest Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
@@ -50,17 +75,19 @@ jobs:
           generate_release_notes: true
           files: ooxml-odf-viewer-${{ steps.get_version.outputs.VERSION }}.zip
           body: |
-            # OOXML/ODF Viewer & Editor ${{ steps.get_version.outputs.VERSION }}
-            
+            # OOXML/ODF Viewer & Editor (Latest)
+
+            **Current Version**: ${{ steps.get_version.outputs.VERSION }}
+
             Chrome Extension 다운로드 및 설치 방법:
-            
+
             1. 아래 ZIP 파일 다운로드
             2. ZIP 파일 압축 해제
             3. Chrome에서 `chrome://extensions/` 접속
             4. "개발자 모드" 활성화
             5. "압축해제된 확장 프로그램을 로드합니다" 클릭
             6. 압축 해제한 폴더 선택
-            
+
             **웹사이트 버전**: https://leesk1283-github.github.io/ooxml-odf-viewer/
           draft: false
           prerelease: false
