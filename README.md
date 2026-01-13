@@ -4,7 +4,7 @@ View and edit the internal XML structure of OOXML and ODF files.
 
 ## 🌐 웹사이트 (Web Version)
 
-**바로 사용하기**: https://leesk1283-github.github.io/ooxml-odf-viewer/
+**바로 사용하기**: [https://ooxml-odf-viewer.vercel.app/](https://ooxml-odf-viewer.vercel.app/)
 
 - 설치 불필요
 - 모든 브라우저에서 사용 가능
