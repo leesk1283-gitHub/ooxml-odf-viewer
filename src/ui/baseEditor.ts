@@ -1,6 +1,7 @@
 import { ZipHandler } from '../utils/zipHandler';
 import xmlFormatter from 'xml-formatter';
 import { hoverTooltip } from "@codemirror/view";
+import { normalizeXmlAttributes } from '../utils/diffUtils';
 
 /**
  * Base class for editors with common relationship handling
@@ -143,7 +144,7 @@ export abstract class BaseEditor {
     protected formatXml(content: string): string {
         try {
             // Normalize attributes before formatting to make comparison easier
-            const normalized = this.normalizeXmlAttributes(content);
+            const normalized = normalizeXmlAttributes(content);
             return xmlFormatter(normalized, {
                 indentation: '  ',
                 collapseContent: true,
@@ -153,30 +154,5 @@ export abstract class BaseEditor {
             // Return original if formatting fails
             return content;
         }
-    }
-
-    /**
-     * Normalize XML by sorting attributes alphabetically
-     * This helps with comparing files that have the same content but different attribute order
-     */
-    private normalizeXmlAttributes(xml: string): string {
-        // Sort attributes within each tag
-        return xml.replace(/<([a-zA-Z_:][\w:.-]*)\s+([^>]+?)(\/?)\s*>/g, (match, tagName, attrs, selfClose) => {
-            // Extract all attributes: attr="value" or attr='value'
-            const attrMatches = attrs.match(/[\w:.-]+\s*=\s*("[^"]*"|'[^']*')/g);
-
-            if (!attrMatches || attrMatches.length <= 1) {
-                // No attributes or single attribute - return as is
-                return match;
-            }
-
-            // Sort attributes alphabetically (after normalizing whitespace)
-            const sortedAttrs = attrMatches
-                .map((attr: string) => attr.replace(/\s*=\s*/, '='))  // Normalize spaces around =
-                .sort()
-                .join(' ');
-
-            return `<${tagName} ${sortedAttrs}${selfClose}>`;
-        });
     }
 }

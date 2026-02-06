@@ -138,9 +138,39 @@ export async function compareFileContents(
     }
 }
 
+// 두 xml 문자열을 비교할 때 사용하는 정규화 함수
 function normalizeXml(xml: string): string {
-    // Remove all whitespace between tags for comparison
-    return xml.replace(/>\s+</g, '><').trim();
+    return normalizeXmlAttributes(xml)
+        // XML 선언 제거
+        .replace(/<\?xml[^>]*\?>\s*/i, '')
+        // Remove all whitespace between tags for comparison
+        .replace(/>\s+</g, '><')
+        .trim();
+}
+
+/**
+ * Normalize XML by sorting attributes alphabetically
+ * This helps with comparing files that have the same content but different attribute order
+ */
+export function normalizeXmlAttributes(xml: string): string {
+    // Sort attributes within each tag
+    return xml.replace(/<([a-zA-Z_:][\w:.-]*)\s+([^>]+?)(\/?)\s*>/g, (match, tagName, attrs, selfClose) => {
+        // Extract all attributes: attr="value" or attr='value'
+        const attrMatches = attrs.match(/[\w:.-]+\s*=\s*("[^"]*"|'[^']*')/g);
+
+        if (!attrMatches || attrMatches.length <= 1) {
+            // No attributes or single attribute - return as is
+            return match;
+        }
+
+        // Sort attributes alphabetically (after normalizing whitespace)
+        const sortedAttrs = attrMatches
+            .map((attr: string) => attr.replace(/\s*=\s*/, '='))  // Normalize spaces around =
+            .sort()
+            .join(' ');
+
+        return `<${tagName} ${sortedAttrs}${selfClose}>`;
+    });
 }
 
 /**
