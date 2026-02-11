@@ -82,7 +82,10 @@ export abstract class BaseEditor {
 
         for (const part of targetParts) {
             if (part === '..') {
-                currentDirParts.pop();
+                // Only pop if there are parts to pop (boundary check)
+                if (currentDirParts.length > 0) {
+                    currentDirParts.pop();
+                }
             } else if (part !== '.') {
                 currentDirParts.push(part);
             }
@@ -93,6 +96,8 @@ export abstract class BaseEditor {
 
     /**
      * Create Monaco hover provider for rId references (uses this.relsMap)
+     * Note: Registers globally but returns IDisposable for proper cleanup
+     * Each editor instance should dispose its provider when destroyed
      */
     protected createHoverProvider(
         _editor: monaco.editor.IStandaloneCodeEditor,

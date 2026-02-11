@@ -24,6 +24,8 @@ export class DiffEditor extends BaseEditor {
     private currentNode: MergedZipNode | null = null;
     private rightZipHandler: ZipHandler;
     private diffEditor: monaco.editor.IStandaloneDiffEditor | null = null;
+    private originalModel: monaco.editor.ITextModel | null = null;
+    private modifiedModel: monaco.editor.ITextModel | null = null;
     private leftHoverProvider: monaco.IDisposable | null = null;
     private rightHoverProvider: monaco.IDisposable | null = null;
     private leftChangeListener: monaco.IDisposable | null = null;
@@ -69,6 +71,14 @@ export class DiffEditor extends BaseEditor {
         if (this.diffEditor) {
             this.diffEditor.dispose();
             this.diffEditor = null;
+        }
+        if (this.originalModel) {
+            this.originalModel.dispose();
+            this.originalModel = null;
+        }
+        if (this.modifiedModel) {
+            this.modifiedModel.dispose();
+            this.modifiedModel = null;
         }
         if (this.leftHoverProvider) {
             this.leftHoverProvider.dispose();
@@ -205,10 +215,10 @@ export class DiffEditor extends BaseEditor {
             ...getDiffEditorOptions()
         });
 
-        // Create models
-        const originalModel = monaco.editor.createModel(leftContent, 'xml');
-        const modifiedModel = monaco.editor.createModel(rightContent, 'xml');
-        this.diffEditor.setModel({ original: originalModel, modified: modifiedModel });
+        // Create models and store references for proper disposal
+        this.originalModel = monaco.editor.createModel(leftContent, 'xml');
+        this.modifiedModel = monaco.editor.createModel(rightContent, 'xml');
+        this.diffEditor.setModel({ original: this.originalModel, modified: this.modifiedModel });
 
         // Get individual editors
         const leftEditor = this.diffEditor.getOriginalEditor();
@@ -396,6 +406,14 @@ export class DiffEditor extends BaseEditor {
         if (this.diffEditor) {
             this.diffEditor.dispose();
             this.diffEditor = null;
+        }
+        if (this.originalModel) {
+            this.originalModel.dispose();
+            this.originalModel = null;
+        }
+        if (this.modifiedModel) {
+            this.modifiedModel.dispose();
+            this.modifiedModel = null;
         }
         if (this.leftHoverProvider) {
             this.leftHoverProvider.dispose();

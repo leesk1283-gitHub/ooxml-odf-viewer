@@ -62,12 +62,13 @@ export class TreeView {
         highlighted.forEach(el => el.classList.remove('hover-highlight'));
 
         if (path) {
-            const safePath = path.replace(/"/g, '\\"');
+            const safePath = CSS.escape(path);
             let target = this.container.querySelector(`.tree-content[data-path="${safePath}"]`);
 
             if (!target) {
-                const altPath = safePath.startsWith('/') ? safePath.substring(1) : `/${safePath}`;
-                target = this.container.querySelector(`.tree-content[data-path="${altPath}"]`);
+                const altPath = path.startsWith('/') ? path.substring(1) : `/${path}`;
+                const safeAltPath = CSS.escape(altPath);
+                target = this.container.querySelector(`.tree-content[data-path="${safeAltPath}"]`);
             }
 
             if (target) {

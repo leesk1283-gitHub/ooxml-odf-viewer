@@ -92,7 +92,10 @@ window.addEventListener('dragover', (e) => {
 
 dropZone.addEventListener('dragleave', (e) => {
     e.preventDefault();
-    dropZone.classList.add('hidden');
+    // Only hide when leaving the dropZone itself, not child elements
+    if (e.target === dropZone) {
+        dropZone.classList.add('hidden');
+    }
 });
 
 dropZone.addEventListener('drop', async (e) => {
