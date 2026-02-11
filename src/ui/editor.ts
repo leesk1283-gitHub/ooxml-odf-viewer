@@ -1,11 +1,8 @@
 import { ZipHandler, type ZipNode } from '../utils/zipHandler';
 import { BaseEditor } from './baseEditor';
-import { EditorView, keymap } from "@codemirror/view"
-import { EditorState } from "@codemirror/state"
-import { highlightSelectionMatches, getSearchQuery, openSearchPanel } from "@codemirror/search"
-import { rectangularSelection, crosshairCursor } from "@codemirror/view"
-import { getCommonExtensions } from '../lib/codemirror';
-import { DESKTOP_MIN_WIDTH, FILE_EXTENSIONS } from '../const/constants';
+import * as monaco from 'monaco-editor';
+import { getCommonEditorOptions } from '../lib/monaco';
+import { FILE_EXTENSIONS } from '../const/constants';
 
 /**
  * Editor for single file mode
@@ -19,7 +16,9 @@ export class Editor extends BaseEditor {
     private editorContainer: HTMLElement;
 
     private currentNode: ZipNode | null = null;
-    private editorView: EditorView | null = null;
+    private editor: monaco.editor.IStandaloneCodeEditor | null = null;
+    private hoverProvider: monaco.IDisposable | null = null;
+    private changeListener: monaco.IDisposable | null = null;
 
     constructor(zipHandler: ZipHandler, onHoverTarget: (path: string | null) => void) {
         super(zipHandler, onHoverTarget);
@@ -41,9 +40,17 @@ export class Editor extends BaseEditor {
         this.contentArea.innerHTML = '<div style="color: #9ca3af; text-align: center; margin-top: 20px;">Loading...</div>';
         this.saveBtn.disabled = true;
 
-        if (this.editorView) {
-            this.editorView.destroy();
-            this.editorView = null;
+        if (this.editor) {
+            this.editor.dispose();
+            this.editor = null;
+        }
+        if (this.hoverProvider) {
+            this.hoverProvider.dispose();
+            this.hoverProvider = null;
+        }
+        if (this.changeListener) {
+            this.changeListener.dispose();
+            this.changeListener = null;
         }
 
         try {
@@ -76,41 +83,24 @@ export class Editor extends BaseEditor {
             displayContent = this.formatXml(content);
         }
 
-        const startState = EditorState.create({
-            doc: displayContent,
-            extensions: [
-                ...getCommonExtensions(),
-                highlightSelectionMatches(),
-                rectangularSelection(),
-                crosshairCursor(),
-                this.createRelationshipTooltip(),
-                keymap.of([
-                    {
-                        key: "Mod-s",
-                        run: () => {
-                            this.save();
-                            return true;
-                        }
-                    }
-                ]),
-                EditorView.updateListener.of((update) => {
-                    if (update.docChanged) {
-                        this.saveBtn.disabled = false;
-                    }
-                    this.updateSearchCount(update.view);
-                })
-            ]
+        // Create Monaco editor
+        this.editor = monaco.editor.create(this.contentArea, {
+            value: displayContent,
+            ...getCommonEditorOptions()
         });
 
-        this.editorView = new EditorView({
-            state: startState,
-            parent: this.contentArea
+        // Register rId hover tooltip
+        this.hoverProvider = this.createHoverProvider(this.editor, this.relsMap);
+
+        // Enable save button on edit
+        this.changeListener = this.editor.onDidChangeModelContent(() => {
+            this.saveBtn.disabled = false;
         });
 
-        // Open search panel on desktop
-        if (window.innerWidth > DESKTOP_MIN_WIDTH) {
-            openSearchPanel(this.editorView);
-        }
+        // Ctrl/Cmd+S to save
+        this.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+            this.save();
+        });
     }
 
     private loadImageFile(data: Blob) {
@@ -121,67 +111,10 @@ export class Editor extends BaseEditor {
         this.contentArea.appendChild(img);
     }
 
-    private updateSearchCount(view: EditorView) {
-        const query = getSearchQuery(view.state);
-        const panel = view.dom.querySelector('.cm-search');
-
-        if (!panel) return;
-
-        let countSpan = panel.querySelector('.cm-search-count') as HTMLElement;
-        if (!countSpan) {
-            countSpan = this.createSearchCountElement(panel);
-        }
-
-        if (!query.search) {
-            countSpan.textContent = '';
-            countSpan.style.display = 'none';
-            return;
-        }
-
-        let count = 0;
-        const cursor = query.getCursor(view.state.doc);
-        while (!cursor.next().done) {
-            count++;
-            if (count > 999) {
-                countSpan.textContent = '999+';
-                countSpan.style.display = 'inline-block';
-                return;
-            }
-        }
-
-        countSpan.textContent = count > 0 ? `${count} matches` : 'No matches';
-        countSpan.style.display = 'inline-block';
-    }
-
-    private createSearchCountElement(panel: Element): HTMLElement {
-        const countSpan = document.createElement('span');
-        countSpan.className = 'cm-search-count';
-        countSpan.style.marginLeft = '8px';
-        countSpan.style.fontWeight = 'bold';
-        countSpan.style.color = '#60a5fa';
-        countSpan.style.fontSize = '14px';
-        countSpan.style.padding = '4px 8px';
-        countSpan.style.backgroundColor = '#1f2937';
-        countSpan.style.borderRadius = '4px';
-        countSpan.style.border = '1px solid #4b5563';
-        countSpan.style.minWidth = '110px';
-        countSpan.style.textAlign = 'center';
-        countSpan.style.display = 'inline-block';
-
-        const searchInput = panel.querySelector('input:not([type="checkbox"])');
-        if (searchInput && searchInput.parentNode) {
-            searchInput.parentNode.insertBefore(countSpan, searchInput.nextSibling);
-        } else {
-            panel.appendChild(countSpan);
-        }
-
-        return countSpan;
-    }
-
     async save() {
-        if (!this.currentNode || !this.editorView) return;
+        if (!this.currentNode || !this.editor) return;
 
-        const contentToSave = this.editorView.state.doc.toString();
+        const contentToSave = this.editor.getValue();
 
         try {
             await this.zipHandler.updateFile(this.currentNode.path, contentToSave);
@@ -195,9 +128,17 @@ export class Editor extends BaseEditor {
 
     reset() {
         this.currentNode = null;
-        if (this.editorView) {
-            this.editorView.destroy();
-            this.editorView = null;
+        if (this.editor) {
+            this.editor.dispose();
+            this.editor = null;
+        }
+        if (this.hoverProvider) {
+            this.hoverProvider.dispose();
+            this.hoverProvider = null;
+        }
+        if (this.changeListener) {
+            this.changeListener.dispose();
+            this.changeListener = null;
         }
         this.emptyState.classList.remove('hidden');
         this.editorContainer.classList.add('hidden');

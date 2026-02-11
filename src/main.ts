@@ -1,5 +1,9 @@
 import { Mode } from './modes/mode';
 import { DiffMode } from './modes/diffMode';
+import { initializeMonaco } from './lib/monaco';
+
+// Initialize Monaco Editor
+initializeMonaco();
 
 // Mode State
 let mode: Mode | null = null;
