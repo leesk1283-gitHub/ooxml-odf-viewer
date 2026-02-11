@@ -6,8 +6,8 @@
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>OOXML/ODF Viewer</title>
-  <script type="module" crossorigin src="/assets/index-Btmv0GqD.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-CiM-1y9r.css">
+  <script type="module" crossorigin src="/assets/index-B5ghkJWg.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BfzQIlNy.css">
 </head>
 
 <body>
@@ -63,8 +63,23 @@
             <span id="diff-current-path"></span>
           </div>
           <div class="diff-editor-controls">
-            <button id="btn-save-left" disabled>Save</button>
-            <button id="btn-save-right" disabled>Save</button>
+            <div class="diff-navigation">
+              <button id="btn-prev-diff" title="Previous Difference (F7)" disabled>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M8 3L4 7h8L8 3z"/>
+                </svg>
+              </button>
+              <button id="btn-next-diff" title="Next Difference (F8)" disabled>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M8 13l4-4H4l4 4z"/>
+                </svg>
+              </button>
+              <span id="diff-counter" class="diff-counter">-/-</span>
+            </div>
+            <div class="diff-save-buttons">
+              <button id="btn-save-left" disabled>Save Left</button>
+              <button id="btn-save-right" disabled>Save Right</button>
+            </div>
           </div>
           <div id="diff-editor-content"></div>
         </div>
