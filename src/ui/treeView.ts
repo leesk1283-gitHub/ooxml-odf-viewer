@@ -56,18 +56,17 @@ export class TreeView {
      * Highlight a specific node in the tree by path
      */
     highlightTreeNode(path: string | null) {
-        if (path) console.log(`[Debug] highlightTreeNode called with path: ${path}`);
-
         const highlighted = this.container.querySelectorAll('.tree-content.hover-highlight');
         highlighted.forEach(el => el.classList.remove('hover-highlight'));
 
         if (path) {
-            const safePath = path.replace(/"/g, '\\"');
+            const safePath = CSS.escape(path);
             let target = this.container.querySelector(`.tree-content[data-path="${safePath}"]`);
 
             if (!target) {
-                const altPath = safePath.startsWith('/') ? safePath.substring(1) : `/${safePath}`;
-                target = this.container.querySelector(`.tree-content[data-path="${altPath}"]`);
+                const altPath = path.startsWith('/') ? path.substring(1) : `/${path}`;
+                const safeAltPath = CSS.escape(altPath);
+                target = this.container.querySelector(`.tree-content[data-path="${safeAltPath}"]`);
             }
 
             if (target) {
@@ -90,8 +89,6 @@ export class TreeView {
                 }
 
                 target.scrollIntoView({ block: 'nearest' });
-            } else {
-                console.log(`[Debug] Target element not found for path: ${path}`);
             }
         }
     }

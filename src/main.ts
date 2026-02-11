@@ -1,5 +1,9 @@
 import { Mode } from './modes/mode';
 import { DiffMode } from './modes/diffMode';
+import { initializeMonaco } from './lib/monaco';
+
+// Initialize Monaco Editor
+initializeMonaco();
 
 // Mode State
 let mode: Mode | null = null;
@@ -88,7 +92,10 @@ window.addEventListener('dragover', (e) => {
 
 dropZone.addEventListener('dragleave', (e) => {
     e.preventDefault();
-    dropZone.classList.add('hidden');
+    // Only hide when leaving the dropZone itself, not child elements
+    if (e.target === dropZone) {
+        dropZone.classList.add('hidden');
+    }
 });
 
 dropZone.addEventListener('drop', async (e) => {

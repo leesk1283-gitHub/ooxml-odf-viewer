@@ -138,22 +138,44 @@ export async function compareFileContents(
     }
 }
 
-// 두 xml 문자열을 비교할 때 사용하는 정규화 함수
+/**
+ * Normalize XML for comparison purposes
+ * Used by compareFileContents() to determine if two XML files are identical
+ *
+ * Normalizations applied:
+ * 1. Sort attributes alphabetically (via normalizeXmlAttributes)
+ * 2. Remove XML declaration (encoding differences don't matter)
+ * 3. Normalize whitespace between tags (but preserve text content)
+ * 4. Trim leading/trailing whitespace
+ */
 function normalizeXml(xml: string): string {
     return normalizeXmlAttributes(xml)
-        // XML 선언 제거
+        // Remove XML declaration (<?xml version="1.0" encoding="UTF-8"?>)
+        // Different tools generate different declarations, but content is same
         .replace(/<\?xml[^>]*\?>\s*/i, '')
-        // Remove all whitespace between tags for comparison
+        // Normalize whitespace between tags (but preserve actual text content)
+        // Only removes whitespace-only text nodes between tags
         .replace(/>\s+</g, '><')
         .trim();
 }
 
 /**
  * Normalize XML by sorting attributes alphabetically
- * This helps with comparing files that have the same content but different attribute order
+ *
+ * This helps with:
+ * 1. Comparing files that have same content but different attribute order
+ * 2. Consistent formatting when displaying XML
+ *
+ * Used by:
+ * - normalizeXml() for file comparison (tree diff status)
+ * - formatXml() in baseEditor.ts for display formatting
+ *
+ * Example:
+ *   Input:  <tag z="3" a="1" m="2"/>
+ *   Output: <tag a="1" m="2" z="3"/>
  */
 export function normalizeXmlAttributes(xml: string): string {
-    // Sort attributes within each tag
+    // Match tags with attributes: <tagName attr1="val1" attr2="val2" />
     return xml.replace(/<([a-zA-Z_:][\w:.-]*)\s+([^>]+?)(\/?)\s*>/g, (match, tagName, attrs, selfClose) => {
         // Extract all attributes: attr="value" or attr='value'
         const attrMatches = attrs.match(/[\w:.-]+\s*=\s*("[^"]*"|'[^']*')/g);
@@ -163,9 +185,9 @@ export function normalizeXmlAttributes(xml: string): string {
             return match;
         }
 
-        // Sort attributes alphabetically (after normalizing whitespace)
+        // Sort attributes alphabetically (after normalizing whitespace around =)
         const sortedAttrs = attrMatches
-            .map((attr: string) => attr.replace(/\s*=\s*/, '='))  // Normalize spaces around =
+            .map((attr: string) => attr.replace(/\s*=\s*/, '='))
             .sort()
             .join(' ');
 

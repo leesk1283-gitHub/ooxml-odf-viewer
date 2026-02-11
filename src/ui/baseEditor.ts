@@ -1,6 +1,6 @@
 import { ZipHandler } from '../utils/zipHandler';
 import xmlFormatter from 'xml-formatter';
-import { hoverTooltip } from "@codemirror/view";
+import * as monaco from 'monaco-editor';
 import { normalizeXmlAttributes } from '../utils/diffUtils';
 
 /**
@@ -37,7 +37,6 @@ export abstract class BaseEditor {
             }
         } catch {
             // .rels file might not exist, which is fine
-            console.log(`[Debug] No .rels file found for ${xmlPath}`);
         }
     }
 
@@ -59,7 +58,6 @@ export abstract class BaseEditor {
                 targetMap.set(id, resolvedPath);
             }
         }
-        console.log(`[Debug] Loaded ${targetMap.size} relationships`, targetMap);
     }
 
     /**
@@ -82,7 +80,10 @@ export abstract class BaseEditor {
 
         for (const part of targetParts) {
             if (part === '..') {
-                currentDirParts.pop();
+                // Only pop if there are parts to pop (boundary check)
+                if (currentDirParts.length > 0) {
+                    currentDirParts.pop();
+                }
             } else if (part !== '.') {
                 currentDirParts.push(part);
             }
@@ -92,64 +93,63 @@ export abstract class BaseEditor {
     }
 
     /**
-     * Create relationship tooltip for rId references (uses this.relsMap)
+     * Create Monaco hover provider for rId references (uses this.relsMap)
+     * Note: Registers globally but returns IDisposable for proper cleanup
+     * Each editor instance should dispose its provider when destroyed
      */
-    protected createRelationshipTooltip() {
-        return this.createRelationshipTooltipWithMap(this.relsMap);
-    }
+    protected createHoverProvider(
+        _editor: monaco.editor.IStandaloneCodeEditor,
+        relsMap: Map<string, string> = this.relsMap
+    ): monaco.IDisposable {
+        return monaco.languages.registerHoverProvider('xml', {
+            provideHover: (model, position) => {
+                const word = model.getWordAtPosition(position);
+                if (!word) {
+                    this.onHoverTarget(null);
+                    return null;
+                }
 
-    /**
-     * Create relationship tooltip with a specific relsMap
-     * Can be used by subclasses with multiple relsMaps
-     */
-    protected createRelationshipTooltipWithMap(relsMap: Map<string, string>) {
-        return hoverTooltip((view, pos) => {
-            const { from, to, text } = view.state.doc.lineAt(pos);
-            let start = pos, end = pos;
-            while (start > from && /\w/.test(text[start - from - 1])) start--;
-            while (end < to && /\w/.test(text[end - from])) end++;
+                const target = relsMap.get(word.word);
+                if (target) {
+                    this.onHoverTarget(target);
+                    return {
+                        range: new monaco.Range(
+                            position.lineNumber,
+                            word.startColumn,
+                            position.lineNumber,
+                            word.endColumn
+                        ),
+                        contents: [{ value: `**Target:** ${target}` }]
+                    };
+                }
 
-            if (start == end) return null;
-
-            const word = text.slice(start - from, end - from);
-            const target = relsMap.get(word);
-
-            if (target) {
-                console.log(`[Debug] Hovered: ${word}, Target: ${target}`);
-                return {
-                    pos: start,
-                    end,
-                    above: true,
-                    create: () => {
-                        this.onHoverTarget(target);
-                        const dom = document.createElement("div");
-                        dom.textContent = `Target: ${target}`;
-
-                        return {
-                            dom,
-                            destroy: () => {
-                                this.onHoverTarget(null);
-                            }
-                        };
-                    }
-                };
+                this.onHoverTarget(null);
+                return null;
             }
-            return null;
         });
     }
 
     /**
-     * Format XML content
+     * Format XML content for display
+     * - Sorts attributes alphabetically for consistent formatting
+     * - Pretty-prints with proper indentation
+     * - Normalizes line endings and tabs
      */
     protected formatXml(content: string): string {
         try {
-            // Normalize attributes before formatting to make comparison easier
+            // Sort attributes for consistent formatting
             const normalized = normalizeXmlAttributes(content);
-            return xmlFormatter(normalized, {
+            const formatted = xmlFormatter(normalized, {
                 indentation: '  ',
                 collapseContent: true,
                 lineSeparator: '\n'
             });
+
+            // Ensure consistent line endings and remove any problematic characters
+            return formatted
+                .replace(/\r\n/g, '\n')  // Convert CRLF to LF
+                .replace(/\r/g, '\n')    // Convert CR to LF
+                .replace(/\t/g, '  ');   // Convert tabs to 2 spaces
         } catch {
             // Return original if formatting fails
             return content;
