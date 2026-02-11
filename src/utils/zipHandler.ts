@@ -68,7 +68,7 @@ export class ZipHandler {
 
         // Check extension to decide return type
         const lowerPath = path.toLowerCase();
-        if (lowerPath.endsWith('.xml') || lowerPath.endsWith('.rels') || lowerPath.endsWith('.txt')) {
+        if (lowerPath.endsWith('.xml') || lowerPath.endsWith('.rels') || lowerPath.endsWith('.txt') || lowerPath.endsWith('.vml')) {
             return await file.async('string');
         } else {
             return await file.async('blob');

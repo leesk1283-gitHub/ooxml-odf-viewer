@@ -35,6 +35,6 @@ export const DELETE_ANIMATION_DURATION = 300; // ms
  * File extensions
  */
 export const FILE_EXTENSIONS = {
-    XML: ['.xml', '.rels'],
+    XML: ['.xml', '.rels', '.vml'],
     IMAGE: ['.png', '.jpg', '.jpeg', '.gif']
 } as const;
