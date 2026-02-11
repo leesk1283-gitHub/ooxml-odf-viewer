@@ -23,13 +23,27 @@ Chrome Extension으로도 사용할 수 있습니다.
 ## ✨ 주요 기능
 
 - 📂 OOXML/ODF 파일 구조 탐색
-- 📝 XML 편집 (CodeMirror)
+- 📝 XML 편집 (Monaco Editor - VS Code와 동일한 에디터)
 - 🔍 검색 패널 자동 표시
 - 💡 Relationship Tooltip (rId 마우스 오버 시 타겟 파일 표시)
 - 🎨 다크 모드 UI
 - 💾 실시간 저장 및 다운로드
 - 🔄 Diff 모드 (두 파일 비교)
 - 🗑️ 파일/폴더 삭제 기능
+
+## ⌨️ 단축키
+
+### 편집
+- `Ctrl/Cmd + S` - 저장
+- `Ctrl/Cmd + F` - 찾기
+- `Ctrl/Cmd + H` - 찾기 및 바꾸기
+
+### Monaco Editor 기본 기능
+- `Ctrl/Cmd + D` - 다음 같은 단어 선택 (멀티 커서)
+- `Alt + Click` - 멀티 커서 추가
+- `Ctrl/Cmd + /` - 주석 토글
+- `Alt + ↑/↓` - 줄 이동
+- `Shift + Alt + ↑/↓` - 줄 복사
 
 ## 🏗️ 아키텍처
 
