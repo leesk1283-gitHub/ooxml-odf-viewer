@@ -37,7 +37,6 @@ export abstract class BaseEditor {
             }
         } catch {
             // .rels file might not exist, which is fine
-            console.log(`[Debug] No .rels file found for ${xmlPath}`);
         }
     }
 
@@ -59,7 +58,6 @@ export abstract class BaseEditor {
                 targetMap.set(id, resolvedPath);
             }
         }
-        console.log(`[Debug] Loaded ${targetMap.size} relationships`, targetMap);
     }
 
     /**
@@ -113,7 +111,6 @@ export abstract class BaseEditor {
 
                 const target = relsMap.get(word.word);
                 if (target) {
-                    console.log(`[Debug] Hovered: ${word.word}, Target: ${target}`);
                     this.onHoverTarget(target);
                     return {
                         range: new monaco.Range(

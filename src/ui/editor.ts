@@ -83,8 +83,16 @@ export class Editor extends BaseEditor {
             displayContent = this.formatXml(content);
         }
 
-        // Create Monaco editor
-        this.editor = monaco.editor.create(this.contentArea, {
+        // Create a fresh wrapper div to prevent event listener accumulation on contentArea.
+        // Monaco internally adds keyboard/mouse listeners to the container element,
+        // and dispose() may not fully remove them. By using a disposable wrapper,
+        // innerHTML='' on contentArea will destroy the wrapper along with all its listeners.
+        const wrapper = document.createElement('div');
+        wrapper.style.width = '100%';
+        wrapper.style.height = '100%';
+        this.contentArea.appendChild(wrapper);
+
+        this.editor = monaco.editor.create(wrapper, {
             value: displayContent,
             ...getCommonEditorOptions()
         });

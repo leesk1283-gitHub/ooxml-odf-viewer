@@ -56,8 +56,6 @@ export class TreeView {
      * Highlight a specific node in the tree by path
      */
     highlightTreeNode(path: string | null) {
-        if (path) console.log(`[Debug] highlightTreeNode called with path: ${path}`);
-
         const highlighted = this.container.querySelectorAll('.tree-content.hover-highlight');
         highlighted.forEach(el => el.classList.remove('hover-highlight'));
 
@@ -91,8 +89,6 @@ export class TreeView {
                 }
 
                 target.scrollIntoView({ block: 'nearest' });
-            } else {
-                console.log(`[Debug] Target element not found for path: ${path}`);
             }
         }
     }

@@ -61,10 +61,7 @@ export class DiffEditor extends BaseEditor {
         this.currentNode = node;
         this.emptyState.classList.add('hidden');
         this.editorContainer.classList.remove('hidden');
-        this.contentArea.innerHTML = '';
-
         this.pathDisplay.textContent = node.path;
-
         this.saveLeftBtn.disabled = true;
         this.saveRightBtn.disabled = true;
 
@@ -96,6 +93,9 @@ export class DiffEditor extends BaseEditor {
             this.rightChangeListener.dispose();
             this.rightChangeListener = null;
         }
+
+        // NOW safe to clear DOM (after all disposals)
+        this.contentArea.innerHTML = '';
 
         // Reset diff navigation
         this.lineChanges = [];
@@ -210,8 +210,16 @@ export class DiffEditor extends BaseEditor {
     }
 
     private async createDiffView(leftContent: string, rightContent: string, node: MergedZipNode) {
-        // Create diff editor
-        this.diffEditor = monaco.editor.createDiffEditor(this.contentArea, {
+        // Create a fresh wrapper div to prevent event listener accumulation on contentArea.
+        // Monaco internally adds keyboard/mouse listeners to the container element,
+        // and dispose() may not fully remove them. By using a disposable wrapper,
+        // innerHTML='' on contentArea will destroy the wrapper along with all its listeners.
+        const wrapper = document.createElement('div');
+        wrapper.style.width = '100%';
+        wrapper.style.height = '100%';
+        this.contentArea.appendChild(wrapper);
+
+        this.diffEditor = monaco.editor.createDiffEditor(wrapper, {
             ...getDiffEditorOptions()
         });
 
@@ -277,23 +285,19 @@ export class DiffEditor extends BaseEditor {
         // We need to wait for the computation to complete
         const updateChanges = (navigateToFirst: boolean = false) => {
             const changes = this.diffEditor?.getLineChanges();
-            console.log('[DiffEditor] Line changes detected:', changes?.length || 0);
 
             if (changes && changes.length > 0) {
                 this.lineChanges = changes;
                 this.currentDiffIndex = 0;
                 this.updateDiffNavigationUI();
 
-                // Only navigate to first diff on initial load, not on user edits
                 if (navigateToFirst) {
                     this.goToDiff(0);
                 }
             } else {
-                // No changes detected
                 this.lineChanges = [];
                 this.currentDiffIndex = -1;
                 this.updateDiffNavigationUI();
-                console.log('[DiffEditor] No differences found or still computing...');
             }
         };
 
@@ -318,8 +322,6 @@ export class DiffEditor extends BaseEditor {
             this.diffCounter.textContent = 'No differences';
         }
 
-        console.log('[DiffEditor] Navigation state:', { currentNum, totalNum, hasChanges });
-
         // Enable/disable buttons
         this.prevDiffBtn.disabled = !hasChanges || this.currentDiffIndex <= 0;
         this.nextDiffBtn.disabled = !hasChanges || this.currentDiffIndex >= this.lineChanges.length - 1;
@@ -342,22 +344,11 @@ export class DiffEditor extends BaseEditor {
     }
 
     private goToDiff(index: number) {
-        if (!this.diffEditor || index < 0 || index >= this.lineChanges.length) {
-            console.log('[DiffEditor] Cannot navigate to diff:', { index, total: this.lineChanges.length });
-            return;
-        }
+        if (!this.diffEditor || index < 0 || index >= this.lineChanges.length) return;
 
         const change = this.lineChanges[index];
         const modifiedEditor = this.diffEditor.getModifiedEditor();
         const originalEditor = this.diffEditor.getOriginalEditor();
-
-        console.log('[DiffEditor] Navigating to diff:', {
-            index: index + 1,
-            originalLine: change.originalStartLineNumber,
-            modifiedLine: change.modifiedStartLineNumber
-        });
-
-        // Calculate target line (prefer modified side, fallback to original)
         const targetLine = change.modifiedStartLineNumber || change.originalStartLineNumber;
 
         if (targetLine) {
@@ -431,6 +422,9 @@ export class DiffEditor extends BaseEditor {
             this.rightChangeListener.dispose();
             this.rightChangeListener = null;
         }
+
+        // NOW safe to clear DOM (after all disposals)
+        this.contentArea.innerHTML = '';
 
         // Reset diff navigation
         this.lineChanges = [];
