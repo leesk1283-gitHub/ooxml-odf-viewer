@@ -219,6 +219,7 @@ export class TreeView {
         content.addEventListener('click', (e) => {
             e.stopPropagation();
             this.container.focus();
+            this.selectContent(content);
 
             if (node.isDir) {
                 if (childrenContainer) {
@@ -228,7 +229,6 @@ export class TreeView {
                     icon.textContent = isOpen ? '📂' : '📁';
                 }
             } else {
-                this.selectContent(content);
                 onSelect(node);
             }
         });
