@@ -9,10 +9,14 @@ import { getDiffStatusIcon } from '../utils/diffUtils';
 export class TreeView {
     protected container: HTMLElement;
     private isDiffMode: boolean;
+    private nodeByContent = new WeakMap<HTMLElement, ZipNode | MergedZipNode>();
+    private onSelect: ((node: ZipNode | MergedZipNode) => void) | null = null;
 
     constructor(container: HTMLElement, isDiffMode: boolean = false) {
         this.container = container;
         this.isDiffMode = isDiffMode;
+        this.container.tabIndex = 0;
+        this.container.addEventListener('keydown', (e) => this.handleKeyDown(e));
     }
 
     /**
@@ -25,6 +29,9 @@ export class TreeView {
         selectedPath?: string
     ) {
         this.container.innerHTML = '';
+        this.nodeByContent = new WeakMap<HTMLElement, ZipNode | MergedZipNode>();
+        this.onSelect = onSelect as (node: ZipNode | MergedZipNode) => void;
+
         const ul = document.createElement('ul');
         ul.style.paddingLeft = '0';
 
@@ -108,6 +115,7 @@ export class TreeView {
         const content = document.createElement('div');
         content.className = 'tree-content';
         content.setAttribute('data-path', node.path);
+        this.nodeByContent.set(content, node);
 
         // Add data-status for diff mode
         if (this.isDiffMode && 'status' in node) {
@@ -210,6 +218,8 @@ export class TreeView {
         // Event Handling
         content.addEventListener('click', (e) => {
             e.stopPropagation();
+            this.container.focus();
+
             if (node.isDir) {
                 if (childrenContainer) {
                     childrenContainer.classList.toggle('open');
@@ -218,15 +228,143 @@ export class TreeView {
                     icon.textContent = isOpen ? '📂' : '📁';
                 }
             } else {
-                const prevSelected = document.querySelector('.tree-content.selected');
-                if (prevSelected) prevSelected.classList.remove('selected');
-
-                content.classList.add('selected');
+                this.selectContent(content);
                 onSelect(node);
             }
         });
 
         return li;
+    }
+
+    private handleKeyDown(e: KeyboardEvent): void {
+        if (!['ArrowUp', 'ArrowDown', 'ArrowRight', 'ArrowLeft', 'Enter'].includes(e.key)) return;
+
+        let current = this.getSelectedContent() ?? this.getVisibleContents()[0];
+        if (!current) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!this.getSelectedContent()) {
+            this.selectContent(current);
+            current = this.getSelectedContent() ?? current;
+        }
+
+        switch (e.key) {
+            case 'ArrowUp':
+                this.moveSelection(-1);
+                break;
+            case 'ArrowDown':
+                this.moveSelection(1);
+                break;
+            case 'ArrowRight':
+                this.expandOrEnterFolder(current);
+                break;
+            case 'ArrowLeft':
+                this.collapseOrSelectParent(current);
+                break;
+            case 'Enter':
+                this.activateContent(current);
+                break;
+        }
+    }
+
+    private getVisibleContents(): HTMLElement[] {
+        return Array.from(this.container.querySelectorAll<HTMLElement>('.tree-content'))
+            .filter(content => content.offsetParent !== null);
+    }
+
+    private getSelectedContent(): HTMLElement | null {
+        return this.container.querySelector<HTMLElement>('.tree-content.selected');
+    }
+
+    private selectContent(content: HTMLElement): void {
+        const prevSelected = this.getSelectedContent();
+        if (prevSelected) {
+            prevSelected.classList.remove('selected');
+        }
+
+        content.classList.add('selected');
+        content.scrollIntoView({ block: 'nearest' });
+    }
+
+    private moveSelection(offset: number): void {
+        const visibleContents = this.getVisibleContents();
+        const current = this.getSelectedContent();
+        if (visibleContents.length === 0) return;
+
+        const currentIndex = current ? visibleContents.indexOf(current) : -1;
+        const nextIndex = Math.min(Math.max(currentIndex + offset, 0), visibleContents.length - 1);
+        this.selectContent(visibleContents[nextIndex]);
+    }
+
+    private expandOrEnterFolder(content: HTMLElement): void {
+        const childrenContainer = this.getChildrenContainer(content);
+        if (!childrenContainer) return;
+
+        if (!childrenContainer.classList.contains('open')) {
+            this.setFolderOpen(content, true);
+            return;
+        }
+
+        const firstChild = childrenContainer.querySelector<HTMLElement>(':scope > li > .tree-content');
+        if (firstChild) {
+            this.selectContent(firstChild);
+        }
+    }
+
+    private collapseOrSelectParent(content: HTMLElement): void {
+        const childrenContainer = this.getChildrenContainer(content);
+        if (childrenContainer?.classList.contains('open')) {
+            this.setFolderOpen(content, false);
+            return;
+        }
+
+        const parentChildren = content.parentElement?.parentElement;
+        if (!parentChildren?.classList.contains('tree-children')) return;
+
+        const parentContent = parentChildren.parentElement?.querySelector<HTMLElement>(':scope > .tree-content');
+        if (parentContent) {
+            this.selectContent(parentContent);
+        }
+    }
+
+    private activateContent(content: HTMLElement): void {
+        const node = this.nodeByContent.get(content);
+        if (!node) return;
+
+        if (node.isDir) {
+            this.toggleFolder(content);
+            return;
+        }
+
+        this.onSelect?.(node);
+    }
+
+    private toggleFolder(content: HTMLElement): void {
+        const childrenContainer = this.getChildrenContainer(content);
+        if (!childrenContainer) return;
+
+        this.setFolderOpen(content, !childrenContainer.classList.contains('open'));
+    }
+
+    private setFolderOpen(content: HTMLElement, isOpen: boolean): void {
+        const childrenContainer = this.getChildrenContainer(content);
+        if (!childrenContainer) return;
+
+        childrenContainer.classList.toggle('open', isOpen);
+        this.updateFolderVisualState(content, isOpen);
+    }
+
+    private updateFolderVisualState(content: HTMLElement, isOpen: boolean): void {
+        const toggle = content.querySelector<HTMLElement>('.tree-toggle');
+        const icon = content.querySelector<HTMLElement>('.tree-icon');
+        if (toggle) toggle.style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
+        if (icon) icon.textContent = isOpen ? '📂' : '📁';
+    }
+
+    private getChildrenContainer(content: HTMLElement): HTMLElement | null {
+        return content.parentElement?.querySelector<HTMLElement>(':scope > .tree-children') ?? null;
     }
 
     protected createDeleteButton<T extends ZipNode | MergedZipNode>(
